@@ -14,9 +14,26 @@ usage() if ($opts{h});
 
 my $username = '';
 my $password = '';
+my $output = './aliases';
+
+if (-e $output) {
+    my $overwrite = prompt("File exists, overwrite? [y/n]: ", -yn);
+
+    if (!$overwrite) {
+        while(1) {
+            my $newoutput = prompt("Enter path for output: ");
+            
+            unless (-e $newoutput) {
+                $output = $newoutput;
+                last;
+            }
+        }
+    }
+}
 
 $username = $opts{u} if ($opts{u});
 $password = $opts{p} if ($opts{p}); 
+$output = $opts{o} if ($opts{o}); 
 
 $username = prompt("gmail username: ") if ($username eq '');
 $password = prompt("gmail password: ", -e => '*') if ($password eq '');
@@ -24,6 +41,8 @@ $password = prompt("gmail password: ", -e => '*') if ($password eq '');
 # now we're ready to go in theory.
 my $google = WWW::Google::Contacts->new( username => "$username", password => "$password" );
 my $contacts = $google->contacts;
+
+open(FILE, '>'.$output);
 
 while (my $c = $contacts->next) {
     if ($c->email) {
@@ -35,12 +54,27 @@ while (my $c = $contacts->next) {
         } else {
             $name = '';
         }
-        
+
         foreach my $email (@{$c->email}) {
-            print $name." <".$email->value.">\n";
+            # we must set the nickname here, since it could be based on the email
+            my $nickname;
+            
+            if ($name eq '') {
+                # name is blank, so we should take the first part of the email.
+                $email->value =~ m/^(.*)@/;
+                $nickname = $1;
+            } else {
+                $nickname = $name;
+                $nickname =~ s/ /_/g;
+            }
+
+            print FILE "alias ".$nickname." ".$name." <".$email->value.">\n";
         }
     }
 }
+
+close(FILE);
+print "aliases written to ".$output."\n";
 
 sub usage {
     print "usage: gmcontacts <options>\n";

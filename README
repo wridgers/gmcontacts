@@ -2,3 +2,7 @@ gmcontacts - by Will
 -----------------------------------------
 
 gmcontacts helps you manage your gmail contacts for use with mutt.
+
+Requirements:
+    - IO::Prompt
+    - WWW::Google::Contacts
