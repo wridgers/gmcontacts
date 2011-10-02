@@ -3,12 +3,14 @@
 use strict;
 use warnings;
 
+use Data::Dumper;
+
 use Getopt::Std;
 use IO::Prompt;
 use WWW::Google::Contacts;
 
 my %opts;
-getopts('u:p:o:h', \%opts);
+getopts('u:p:o:hw', \%opts);
 
 usage() if ($opts{h});
 
@@ -16,7 +18,7 @@ my $username = '';
 my $password = '';
 my $output = './aliases';
 
-if (-e $output) {
+if (-e $output and !$opts{w}) {
     my $overwrite = prompt("File exists, overwrite? [y/n]: ", -yn);
 
     if (!$overwrite) {
@@ -42,35 +44,37 @@ $password = prompt("gmail password: ", -e => '*') if ($password eq '');
 my $google = WWW::Google::Contacts->new( username => "$username", password => "$password" );
 my $contacts = $google->contacts;
 
-open(FILE, '>'.$output);
+my %tree;
 
 while (my $c = $contacts->next) {
-    if ($c->email) {
+    if ($c->email and $c->full_name) {
         # we have an email here
-
-        my $name;
-        if ($c->full_name) {
-            $name = $c->full_name;
-        } else {
-            $name = '';
-        }
+        # and it has a valid full name!
 
         foreach my $email (@{$c->email}) {
-            # we must set the nickname here, since it could be based on the email
-            my $nickname;
-            
-            if ($name eq '') {
-                # name is blank, so we should take the first part of the email.
-                $email->value =~ m/^(.*)@/;
-                $nickname = $1;
-            } else {
-                $nickname = $name;
-                $nickname =~ s/ /_/g;
-            }
-
-            print FILE "alias ".$nickname." ".$name." <".$email->value.">\n";
+            push(@{$tree{$c->full_name}}, $email->value);
         }
+
     }
+}
+
+open(FILE, '>'.$output);
+
+# now loop through tree and write aliases.
+foreach my $full_name (keys %tree) {
+
+    my $nickname = $full_name;
+    $nickname =~ s/ /_/g;
+
+    print FILE "alias ".$nickname." ".$full_name;
+
+    foreach my $email (@{$tree{$full_name}}) {
+        print Dumper($email);
+        print FILE " <".$email.">";
+    }
+
+    print FILE "\n";
+
 }
 
 close(FILE);
@@ -80,6 +84,7 @@ sub usage {
     print "usage: gmcontacts <options>\n";
     print "   -u USERNAME         set the gmail username\n";
     print "   -p PASSWORD         set the gmail password\n";
+    print "   -w                  don't ask, just write.\n";
     print "   -o PATH             set output path\n";
     print "   -h                  show this help\n";
 
