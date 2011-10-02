@@ -1,0 +1,53 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Getopt::Std;
+use IO::Prompt;
+use WWW::Google::Contacts;
+
+my %opts;
+getopts('u:p:o:h', \%opts);
+
+usage() if ($opts{h});
+
+my $username = '';
+my $password = '';
+
+$username = $opts{u} if ($opts{u});
+$password = $opts{p} if ($opts{p}); 
+
+$username = prompt("gmail username: ") if ($username eq '');
+$password = prompt("gmail password: ", -e => '*') if ($password eq '');
+
+# now we're ready to go in theory.
+my $google = WWW::Google::Contacts->new( username => "$username", password => "$password" );
+my $contacts = $google->contacts;
+
+while (my $c = $contacts->next) {
+    if ($c->email) {
+        # we have an email here
+
+        my $name;
+        if ($c->full_name) {
+            $name = $c->full_name;
+        } else {
+            $name = '';
+        }
+        
+        foreach my $email (@{$c->email}) {
+            print $name." <".$email->value.">\n";
+        }
+    }
+}
+
+sub usage {
+    print "usage: gmcontacts <options>\n";
+    print "   -u USERNAME         set the gmail username\n";
+    print "   -p PASSWORD         set the gmail password\n";
+    print "   -o PATH             set output path\n";
+    print "   -h                  show this help\n";
+
+    exit;
+}
