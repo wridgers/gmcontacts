@@ -3,8 +3,6 @@
 use strict;
 use warnings;
 
-use Data::Dumper;
-
 use Getopt::Std;
 use IO::Prompt;
 use WWW::Google::Contacts;
@@ -69,7 +67,6 @@ foreach my $full_name (keys %tree) {
     print FILE "alias ".$nickname." ".$full_name;
 
     foreach my $email (@{$tree{$full_name}}) {
-        print Dumper($email);
         print FILE " <".$email.">";
     }
 
