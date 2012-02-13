@@ -64,13 +64,11 @@ foreach my $full_name (keys %tree) {
     my $nickname = $full_name;
     $nickname =~ s/ /_/g;
 
-    print FILE "alias ".$nickname." ".$full_name;
-
+    my $i = 0;
     foreach my $email (@{$tree{$full_name}}) {
-        print FILE " <".$email.">";
+        print FILE "alias ".$nickname."_".$i." ".$full_name." <".$email.">\n";
+        $i++;
     }
-
-    print FILE "\n";
 
 }
 
